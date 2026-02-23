@@ -1,9 +1,9 @@
 fastapi==0.115.0
 uvicorn[standard]==0.32.0
-langchain==0.2.16
-langchain-community==0.2.16
-langchain-core==0.2.44
+langchain==1.2.10
+langchain-community==1.2.10
+langchain-core==1.2.15
 qdrant-client==1.11.0
 pydantic==2.9.2
-ollama==0.3.3  # Para LLM local
+ollama==0.3.3
 python-multipart==0.0.9
