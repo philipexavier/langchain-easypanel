@@ -1,0 +1,7 @@
+langchain==0.2.16
+langchain-community==0.2.16
+langchain-core==0.2.44
+fastapi==0.115.0
+uvicorn==0.32.0
+qdrant-client==1.11.0
+pydantic==2.9.2
