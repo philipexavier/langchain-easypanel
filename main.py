@@ -1,28 +1,47 @@
 from fastapi import FastAPI
+from pydantic import BaseModel
 from langchain_community.llms import Ollama
 from langchain_community.vectorstores import Qdrant
 from langchain_community.embeddings import OllamaEmbeddings
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser
 import os
 
 app = FastAPI()
 
+class Query(BaseModel):
+    query: str
+
 @app.get("/health")
 def health():
-    return {"status": "ok"}
+    return {"status": "LangChain 1.2 OK"}
 
 @app.post("/rag")
-def rag_query(query: str):
-    # Exemplo simples - ajuste pro seu
-    llm = Ollama(model="jurema:7b")  # Aponta pro jurema-llm
-    embeddings = OllamaEmbeddings(model="mxbai-embed-large")
+def rag_query(q: Query):
+    base_url = os.getenv("OLLAMA_BASE_URL", "http://jurema-llm:11434")
+    qdrant_url = os.getenv("QDRANT_URL", "http://qdrant:6333")
+    
+    llm = Ollama(model="jurema:7b", base_url=base_url)
+    embeddings = OllamaEmbeddings(model="mxbai-embed-large", base_url=base_url)
+    
     qdrant = Qdrant.from_existing_collection(
         embedding=embeddings,
-        url="http://qdrant:6333",
-        collection_name="tributario"
+        url=qdrant_url,
+        collection_name="tributario"  # Seu índice de normas
     )
-    retriever = qdrant.as_retriever()
-    # ... resto da chain aqui
-    return {"result": "exemplo"}
+    
+    retriever = qdrant.as_retriever(search_kwargs={"k": 3})
+    prompt = ChatPromptTemplate.from_template(
+        "Você é consultor tributário. Baseado nestes docs da reforma tributária:\n{context}\n\nPergunta: {query}\nResponda com regras aplicáveis e citações."
+    )
+    chain = prompt | llm | StrOutputParser()
+    
+    result = chain.invoke({
+        "context": retriever.get_relevant_documents(q.query),
+        "query": q.query
+    })
+    
+    return {"result": result}
 
 if __name__ == "__main__":
     import uvicorn
